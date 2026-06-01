@@ -2,7 +2,7 @@ import { db } from './firebase.js';
 import {
   collection, addDoc, deleteDoc, doc, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { showToast, setLoading } from './ui.js';
+import { showToast, setLoading, openModal, closeModal } from './ui.js';
 
 const CORES = [
   { label: 'Vermelho',  value: '#EF4444' },
@@ -68,15 +68,31 @@ export function initCategorias(container) {
 
   const lista = document.getElementById('lista-categorias');
 
-  lista.addEventListener('click', async (e) => {
+  lista.addEventListener('click', (e) => {
     if (!e.target.classList.contains('btn-delete')) return;
-    if (!confirm('Deseja excluir esta categoria?')) return;
-    try {
-      await deleteDoc(doc(db, 'categorias', e.target.dataset.id));
-      showToast('Categoria excluída.');
-    } catch {
-      showToast('Erro ao excluir.', 'error');
-    }
+    const id = e.target.dataset.id;
+    openModal(`
+      <div class="modal-header">
+        <span class="modal-title">Excluir Categoria</span>
+        <button class="modal-close" id="modal-close-btn">&times;</button>
+      </div>
+      <p class="modal-confirm">Tem certeza que deseja excluir esta categoria?<br>Essa ação não pode ser desfeita.</p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="cancel-del">Cancelar</button>
+        <button class="btn btn-danger" id="confirm-del">Excluir</button>
+      </div>
+    `);
+    document.getElementById('modal-close-btn').addEventListener('click', closeModal);
+    document.getElementById('cancel-del').addEventListener('click', closeModal);
+    document.getElementById('confirm-del').addEventListener('click', async () => {
+      try {
+        await deleteDoc(doc(db, 'categorias', id));
+        showToast('Categoria excluída.');
+        closeModal();
+      } catch {
+        showToast('Erro ao excluir.', 'error');
+      }
+    });
   });
 
   const unsub = onSnapshot(collection(db, 'categorias'), (snap) => {
