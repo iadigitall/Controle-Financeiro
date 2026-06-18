@@ -49,3 +49,26 @@ export function closeModal() {
   const root = document.getElementById('modal-root');
   if (root) root.remove();
 }
+
+export function showFieldError(inputEl, message) {
+  inputEl.classList.add('input-error');
+  let errEl = inputEl.parentElement.querySelector('.field-error');
+  if (!errEl) {
+    errEl = document.createElement('span');
+    errEl.className = 'field-error';
+    errEl.setAttribute('role', 'alert');
+    inputEl.parentElement.appendChild(errEl);
+  }
+  errEl.textContent = message;
+  const clear = () => {
+    inputEl.classList.remove('input-error');
+    if (errEl.parentNode) errEl.remove();
+  };
+  inputEl.addEventListener('input', clear, { once: true });
+  inputEl.addEventListener('change', clear, { once: true });
+}
+
+export function clearFieldErrors(formEl) {
+  formEl.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
+  formEl.querySelectorAll('.field-error').forEach(el => el.remove());
+}

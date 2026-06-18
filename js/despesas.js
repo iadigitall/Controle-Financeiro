@@ -2,7 +2,7 @@ import { db } from './firebase.js';
 import {
   collection, addDoc, deleteDoc, updateDoc, doc, query, orderBy, onSnapshot, getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { formatCurrency, formatDate, showToast, setLoading, openModal, closeModal, escapeHtml } from './ui.js';
+import { formatCurrency, formatDate, showToast, setLoading, openModal, closeModal, escapeHtml, showFieldError, clearFieldErrors } from './ui.js';
 
 export function initDespesas(container) {
   container.innerHTML = `
@@ -13,24 +13,24 @@ export function initDespesas(container) {
 
     <div class="card">
       <h2 class="card-title">Nova Despesa</h2>
-      <form id="form-despesa">
+      <form id="form-despesa" novalidate>
         <div class="form-group">
-          <label class="form-label">Descrição</label>
-          <input type="text" id="descricao" class="form-input" required placeholder="Ex: Mercado, Aluguel...">
+          <label class="form-label" for="descricao">Descrição</label>
+          <input type="text" id="descricao" class="form-input" placeholder="Ex: Mercado, Aluguel..." autocomplete="off" maxlength="120">
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Valor (R$)</label>
-            <input type="number" id="valor" class="form-input" required min="0.01" step="0.01" placeholder="0,00">
+            <label class="form-label" for="valor">Valor (R$)</label>
+            <input type="number" id="valor" class="form-input" min="0.01" step="0.01" placeholder="0,00">
           </div>
           <div class="form-group">
-            <label class="form-label">Data</label>
-            <input type="date" id="data" class="form-input" required>
+            <label class="form-label" for="data">Data</label>
+            <input type="date" id="data" class="form-input">
           </div>
         </div>
         <div class="form-group">
-          <label class="form-label">Categoria</label>
-          <select id="categoriaId" class="form-input" required>
+          <label class="form-label" for="categoriaId">Categoria</label>
+          <select id="categoriaId" class="form-input">
             <option value="">Selecione uma categoria...</option>
           </select>
         </div>
@@ -59,20 +59,38 @@ export function initDespesas(container) {
 
   document.getElementById('form-despesa').addEventListener('submit', async (e) => {
     e.preventDefault();
+    const form = e.target;
+    const descricaoEl = document.getElementById('descricao');
+    const valorEl = document.getElementById('valor');
+    const dataEl = document.getElementById('data');
+    const selectEl = document.getElementById('categoriaId');
+
+    clearFieldErrors(form);
+    let valid = true;
+
+    const descricao = descricaoEl.value.trim();
+    const valor = parseFloat(valorEl.value);
+    const data = dataEl.value;
+
+    if (!descricao) { showFieldError(descricaoEl, 'Informe a descrição da despesa.'); valid = false; }
+    if (!valorEl.value || isNaN(valor) || valor <= 0) { showFieldError(valorEl, 'Informe um valor maior que zero.'); valid = false; }
+    if (!data) { showFieldError(dataEl, 'Informe a data da despesa.'); valid = false; }
+    if (!selectEl.value) { showFieldError(selectEl, 'Selecione uma categoria.'); valid = false; }
+    if (!valid) { form.querySelector('.input-error')?.focus(); return; }
+
     const btn = document.getElementById('btn-despesa');
-    const select = document.getElementById('categoriaId');
     setLoading(btn, true, 'Adicionar Despesa');
     try {
       await addDoc(collection(db, 'despesas'), {
-        descricao: document.getElementById('descricao').value.trim(),
-        valor: parseFloat(document.getElementById('valor').value),
-        data: document.getElementById('data').value,
-        categoriaId: select.value,
-        categoriaNome: select.selectedOptions[0]?.text || '',
+        descricao,
+        valor,
+        data,
+        categoriaId: selectEl.value,
+        categoriaNome: selectEl.selectedOptions[0]?.text || '',
         criadoEm: new Date().toISOString()
       });
       showToast('Despesa adicionada com sucesso!');
-      e.target.reset();
+      form.reset();
       document.getElementById('data').valueAsDate = new Date();
     } catch {
       showToast('Erro ao salvar. Tente novamente.', 'error');
@@ -98,26 +116,26 @@ export function initDespesas(container) {
       openModal(`
         <div class="modal-header">
           <span class="modal-title">Editar Despesa</span>
-          <button class="modal-close" id="modal-close-btn">&times;</button>
+          <button class="modal-close" id="modal-close-btn" aria-label="Fechar">&times;</button>
         </div>
-        <form id="form-edit-despesa">
+        <form id="form-edit-despesa" novalidate>
           <div class="form-group">
-            <label class="form-label">Descrição</label>
-            <input type="text" id="edit-descricao" class="form-input" required value="${escapeHtml(data.descricao)}">
+            <label class="form-label" for="edit-descricao">Descrição</label>
+            <input type="text" id="edit-descricao" class="form-input" value="${escapeHtml(data.descricao)}" maxlength="120" autocomplete="off">
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">Valor (R$)</label>
-              <input type="number" id="edit-valor" class="form-input" required min="0.01" step="0.01" value="${data.valor}">
+              <label class="form-label" for="edit-valor">Valor (R$)</label>
+              <input type="number" id="edit-valor" class="form-input" min="0.01" step="0.01" value="${data.valor}">
             </div>
             <div class="form-group">
-              <label class="form-label">Data</label>
-              <input type="date" id="edit-data" class="form-input" required value="${data.data}">
+              <label class="form-label" for="edit-data">Data</label>
+              <input type="date" id="edit-data" class="form-input" value="${data.data}">
             </div>
           </div>
           <div class="form-group">
-            <label class="form-label">Categoria</label>
-            <select id="edit-categoriaId" class="form-input" required>
+            <label class="form-label" for="edit-categoriaId">Categoria</label>
+            <select id="edit-categoriaId" class="form-input">
               <option value="">Selecione...</option>
               ${catOptions}
             </select>
@@ -130,18 +148,37 @@ export function initDespesas(container) {
       `);
       document.getElementById('modal-close-btn').addEventListener('click', closeModal);
       document.getElementById('cancel-edit').addEventListener('click', closeModal);
+      document.getElementById('edit-descricao').focus();
       document.getElementById('form-edit-despesa').addEventListener('submit', async (ev) => {
         ev.preventDefault();
+        const editForm = ev.target;
+        const editDescEl = document.getElementById('edit-descricao');
+        const editValorEl = document.getElementById('edit-valor');
+        const editDataEl = document.getElementById('edit-data');
+        const editCatEl = document.getElementById('edit-categoriaId');
+
+        clearFieldErrors(editForm);
+        let valid = true;
+
+        const descricao = editDescEl.value.trim();
+        const valor = parseFloat(editValorEl.value);
+        const dataVal = editDataEl.value;
+
+        if (!descricao) { showFieldError(editDescEl, 'Informe a descrição.'); valid = false; }
+        if (!editValorEl.value || isNaN(valor) || valor <= 0) { showFieldError(editValorEl, 'Valor deve ser maior que zero.'); valid = false; }
+        if (!dataVal) { showFieldError(editDataEl, 'Informe a data.'); valid = false; }
+        if (!editCatEl.value) { showFieldError(editCatEl, 'Selecione uma categoria.'); valid = false; }
+        if (!valid) { editForm.querySelector('.input-error')?.focus(); return; }
+
         const btn = document.getElementById('btn-save-edit');
-        const select = document.getElementById('edit-categoriaId');
         setLoading(btn, true, 'Salvar');
         try {
           await updateDoc(doc(db, 'despesas', id), {
-            descricao: document.getElementById('edit-descricao').value.trim(),
-            valor: parseFloat(document.getElementById('edit-valor').value),
-            data: document.getElementById('edit-data').value,
-            categoriaId: select.value,
-            categoriaNome: select.selectedOptions[0]?.text || ''
+            descricao,
+            valor,
+            data: dataVal,
+            categoriaId: editCatEl.value,
+            categoriaNome: editCatEl.selectedOptions[0]?.text || ''
           });
           showToast('Despesa atualizada!');
           closeModal();

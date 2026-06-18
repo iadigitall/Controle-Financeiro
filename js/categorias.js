@@ -2,7 +2,7 @@ import { db } from './firebase.js';
 import {
   collection, addDoc, deleteDoc, doc, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { showToast, setLoading, openModal, closeModal } from './ui.js';
+import { showToast, setLoading, openModal, closeModal, showFieldError, clearFieldErrors } from './ui.js';
 
 const CORES = [
   { label: 'Vermelho',  value: '#EF4444' },
@@ -24,15 +24,15 @@ export function initCategorias(container) {
 
     <div class="card">
       <h2 class="card-title">Nova Categoria</h2>
-      <form id="form-categoria">
+      <form id="form-categoria" novalidate>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Nome</label>
-            <input type="text" id="nome" class="form-input" required placeholder="Ex: Alimentação, Transporte...">
+            <label class="form-label" for="nome">Nome</label>
+            <input type="text" id="nome" class="form-input" placeholder="Ex: Alimentação, Transporte..." autocomplete="off" maxlength="60">
           </div>
           <div class="form-group">
-            <label class="form-label">Cor</label>
-            <select id="cor" class="form-input" required>
+            <label class="form-label" for="cor">Cor</label>
+            <select id="cor" class="form-input">
               ${CORES.map(c => `<option value="${c.value}">${c.label}</option>`).join('')}
             </select>
           </div>
@@ -49,16 +49,28 @@ export function initCategorias(container) {
 
   document.getElementById('form-categoria').addEventListener('submit', async (e) => {
     e.preventDefault();
+    const form = e.target;
+    const nomeEl = document.getElementById('nome');
+
+    clearFieldErrors(form);
+
+    const nome = nomeEl.value.trim();
+    if (!nome) {
+      showFieldError(nomeEl, 'Informe o nome da categoria.');
+      nomeEl.focus();
+      return;
+    }
+
     const btn = document.getElementById('btn-categoria');
     setLoading(btn, true, 'Adicionar Categoria');
     try {
       await addDoc(collection(db, 'categorias'), {
-        nome: document.getElementById('nome').value.trim(),
+        nome,
         cor: document.getElementById('cor').value,
         criadoEm: new Date().toISOString()
       });
       showToast('Categoria adicionada!');
-      e.target.reset();
+      form.reset();
     } catch {
       showToast('Erro ao salvar.', 'error');
     } finally {

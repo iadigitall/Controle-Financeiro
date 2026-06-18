@@ -268,3 +268,52 @@
   .modal-actions { flex-direction: column-reverse; }
   .modal-actions .btn { width: 100%; }
 }
+
+/* US08: Form validation */
+.input-error {
+  border-color: var(--danger) !important;
+  box-shadow: 0 0 0 3px rgba(220,38,38,0.15) !important;
+  background: #FFF8F8 !important;
+}
+
+.field-error {
+  color: var(--danger);
+  font-size: 12px;
+  font-weight: 500;
+  margin-top: 3px;
+  display: block;
+}
+
+/* US08: Badge variants para tipo de lançamento */
+.badge-success {
+  background: #DCFCE7;
+  color: #15803D;
+}
+
+.badge-danger {
+  background: #FEE2E2;
+  color: #B91C1C;
+}
+
+/* US07: Barra de progresso de percentual por categoria */
+.pct-bar-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pct-bar {
+  height: 8px;
+  background: var(--danger);
+  border-radius: 4px;
+  min-width: 2px;
+  max-width: 160px;
+  transition: width 0.3s ease;
+}
+
+.pct-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  min-width: 36px;
+}
